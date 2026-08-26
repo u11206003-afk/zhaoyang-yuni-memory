@@ -58,7 +58,7 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
 
   return <main className="auth-screen">
     <section className="auth-card">
-      <div className="auth-brand"><span>憶</span><strong>照樣・憶起</strong></div>
+      <div className="auth-logo-wrap"><img className="auth-logo" src="/photo-together-logo.png" alt="Photo Together 照樣・憶起" /></div>
       <p className="auth-kicker">OUR LITTLE UNIVERSE</p>
       <h1>{mode === 'login' ? '歡迎回來' : '建立你們的相簿'}</h1>
       <p className="auth-intro">登入後，照片、影片和每一段小日記才會出現在這裡。</p>
