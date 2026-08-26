@@ -39,6 +39,20 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
     setBusy(false);
   };
 
+  const signInWithLine = async () => {
+    if (!supabase) return setMessage('登入服務尚未完成設定，請稍後再試。');
+    setBusy(true);
+    setMessage('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'custom:line',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setMessage('LINE 登入暫時無法使用，請稍後再試。');
+      setBusy(false);
+    }
+  };
+
   if (!ready) return <main className="auth-screen"><div className="auth-loading">正在準備你們的回憶…</div></main>;
   if (signedIn) return <><MemoryApp/><button className="signout-button" onClick={() => supabase?.auth.signOut()}>登出</button></>;
 
@@ -48,6 +62,11 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
       <p className="auth-kicker">OUR LITTLE UNIVERSE</p>
       <h1>{mode === 'login' ? '歡迎回來' : '建立你們的相簿'}</h1>
       <p className="auth-intro">登入後，照片、影片和每一段小日記才會出現在這裡。</p>
+      <button className="line-login" type="button" onClick={signInWithLine} disabled={busy}>
+        <span className="line-mark" aria-hidden="true">LINE</span>
+        使用 LINE 登入
+      </button>
+      <div className="auth-divider"><span>或使用電子郵件</span></div>
       <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} onClick={() => {setMode('login');setMessage('');}}>登入</button><button className={mode === 'register' ? 'active' : ''} onClick={() => {setMode('register');setMessage('');}}>註冊</button></div>
       <form onSubmit={submit}>
         <label>電子郵件<input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" /></label>
