@@ -110,7 +110,10 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
       <small>之後可以從右上角頭像修改。</small>
     </section>
   </main>;
-  if (signedIn) return <MemoryApp displayName={displayName} avatarUrl={avatarUrl} inviteOnStart={inviteAfterSetup} onSaveName={saveDisplayName} onSaveAvatar={saveAvatar} onSignOut={() => supabase?.auth.signOut()} />;
+  if (signedIn) return <MemoryApp displayName={displayName} avatarUrl={avatarUrl} inviteOnStart={inviteAfterSetup} onSaveName={saveDisplayName} onSaveAvatar={saveAvatar} onSignOut={async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut({ scope: 'local' });
+  }} />;
 
   return <main className="auth-screen">
     <section className="auth-card">
