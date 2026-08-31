@@ -57,7 +57,7 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
     setBusy(true);
     setMessage('');
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'custom:line',
+      provider: 'custom:line-oauth',
       options: { redirectTo: window.location.origin },
     });
     if (error) {
