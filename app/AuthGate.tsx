@@ -15,11 +15,24 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [nameDraft, setNameDraft] = useState('');
+  const [inviteAfterSetup, setInviteAfterSetup] = useState(false);
 
   useEffect(() => {
     if (!supabase) { setReady(true); return; }
-    supabase.auth.getSession().then(({ data }) => { setSignedIn(Boolean(data.session)); setReady(true); });
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setSignedIn(Boolean(session)));
+    supabase.auth.getSession().then(({ data }) => {
+      setSignedIn(Boolean(data.session));
+      setDisplayName(String(data.session?.user.user_metadata?.display_name || ''));
+      setAvatarUrl(String(data.session?.user.user_metadata?.avatar_url || ''));
+      setReady(true);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+      setDisplayName(String(session?.user.user_metadata?.display_name || ''));
+      setAvatarUrl(String(session?.user.user_metadata?.avatar_url || ''));
+    });
     return () => data.subscription.unsubscribe();
   }, [supabase]);
 
@@ -53,8 +66,51 @@ export default function AuthGate({ supabaseUrl, publishableKey }: Props) {
     }
   };
 
+  const saveDisplayName = async (name: string) => {
+    const cleanName = name.trim();
+    if (!supabase || !cleanName) return false;
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ data: { display_name: cleanName } });
+    setBusy(false);
+    if (error) return false;
+    setDisplayName(cleanName);
+    return true;
+  };
+
+  const saveAvatar = async (url: string) => {
+    if (!supabase || !url) return false;
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ data: { avatar_url: url } });
+    setBusy(false);
+    if (error) return false;
+    setAvatarUrl(url);
+    return true;
+  };
+
+  const finishFirstProfile = async (event: FormEvent) => {
+    event.preventDefault();
+    const saved = await saveDisplayName(nameDraft);
+    if (saved) setInviteAfterSetup(true);
+    else setMessage('名字儲存失敗，請再試一次。');
+  };
+
   if (!ready) return <main className="auth-screen"><div className="auth-loading">正在準備你們的回憶…</div></main>;
-  if (signedIn) return <><MemoryApp/><button className="signout-button" onClick={() => supabase?.auth.signOut()}>登出</button></>;
+  if (signedIn && !displayName) return <main className="auth-screen onboarding-screen">
+    <section className="auth-card onboarding-card">
+      <div className="onboarding-step">第一步</div>
+      <div className="auth-logo-wrap"><img className="auth-logo" src="/photo-together-logo.png" alt="Photo Together" /></div>
+      <p className="auth-kicker">HELLO, TOGETHER</p>
+      <h1>想怎麼稱呼你？</h1>
+      <p className="auth-intro">這個名字會顯示在你留下的照片、影片和小日記旁邊。</p>
+      <form onSubmit={finishFirstProfile}>
+        <label>你的名字<input autoFocus required maxLength={20} value={nameDraft} onChange={e => setNameDraft(e.target.value)} placeholder="例如：小陽" /></label>
+        {message && <p className="auth-message" role="status">{message}</p>}
+        <button className="auth-submit" disabled={busy || !nameDraft.trim()}>{busy ? '正在儲存…' : '建立名字並繼續'}</button>
+      </form>
+      <small>之後可以從右上角頭像修改。</small>
+    </section>
+  </main>;
+  if (signedIn) return <MemoryApp displayName={displayName} avatarUrl={avatarUrl} inviteOnStart={inviteAfterSetup} onSaveName={saveDisplayName} onSaveAvatar={saveAvatar} onSignOut={() => supabase?.auth.signOut()} />;
 
   return <main className="auth-screen">
     <section className="auth-card">
