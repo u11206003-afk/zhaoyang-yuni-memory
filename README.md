@@ -4,4 +4,4 @@
 
 正式網站：https://zhaoyang-yuni.u11206003.chatgpt.site
 
-開啟網站後需先使用 ChatGPT 帳號登入。
+開啟網站後需先使用帳號登入。
