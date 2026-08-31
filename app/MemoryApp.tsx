@@ -6,7 +6,7 @@ type Memory = { id: number; date: string; author: string; title: string; note: s
 const memories: Memory[] = [];
 const galleryItems: Memory[] = [];
 
-type Props = { displayName: string; avatarUrl: string; inviteOnStart?: boolean; onSaveName: (name: string) => Promise<boolean>; onSaveAvatar: (url: string) => Promise<boolean>; onSignOut: () => void };
+type Props = { displayName: string; avatarUrl: string; inviteOnStart?: boolean; onSaveName: (name: string) => Promise<boolean>; onSaveAvatar: (url: string) => Promise<boolean>; onSignOut: () => Promise<void> };
 
 export default function Home({ displayName, avatarUrl, inviteOnStart = false, onSaveName, onSaveAvatar, onSignOut }: Props) {
   const [active, setActive] = useState<'timeline' | 'monthly' | 'map' | 'gallery' | 'people'>('timeline');
@@ -15,6 +15,15 @@ export default function Home({ displayName, avatarUrl, inviteOnStart = false, on
   const [profileMenu, setProfileMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    setSettingsOpen(false);
+    await onSignOut();
+    setSigningOut(false);
+  };
   const [profileName, setProfileName] = useState(displayName);
   const [profileDraft, setProfileDraft] = useState(displayName);
   const [profileAvatar, setProfileAvatar] = useState(avatarUrl);
@@ -124,7 +133,7 @@ export default function Home({ displayName, avatarUrl, inviteOnStart = false, on
     <nav className="bottom-nav"><button className={active === 'timeline' ? 'active' : ''} onClick={() => setActive('timeline')}><b className="ui-icon home-icon"/><span>日常</span></button><button className={active === 'map' ? 'active' : ''} onClick={() => setActive('map')}><b className="ui-icon pin-icon"/><span>足跡</span></button><button onClick={() => setCompose(true)} className="nav-add">＋</button><button className={active === 'gallery' ? 'active' : ''} onClick={() => setActive('gallery')}><b className="ui-icon grid-icon"/><span>相簿</span></button><button className={active === 'monthly' ? 'active' : ''} onClick={() => setActive('monthly')}><b className="ui-icon book-icon"/><span>回憶錄</span></button></nav>
     {inviteOpen && <div className="modal-backdrop" onMouseDown={() => setInviteOpen(false)}><div className="invite-modal" onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setInviteOpen(false)}>×</button><img className="invite-logo" src="/photo-together-logo.png" alt="Photo Together"/><p className="eyebrow">INVITE TOGETHER</p><h2>邀請她一起收藏</h2><p>請伴侶用手機掃描 QR Code，登入後就能一起留下照片、影片與小日記。</p><img className="invite-qr" src="/invite-qr.png" alt="照樣・憶起邀請 QR Code"/><button className="copy-invite" onClick={copyInviteLink}>複製邀請連結</button><small>zhaoyang-yuni.u11206003.chatgpt.site</small></div></div>}
     {profileOpen && <div className="modal-backdrop" onMouseDown={() => setProfileOpen(false)}><div className="profile-modal" onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setProfileOpen(false)}>×</button><button className="avatar-upload" type="button" onClick={chooseAvatar} disabled={avatarBusy}>{avatar('profile-edit-avatar')}<span>{avatarBusy ? '處理中…' : '更換照片'}</span></button><input ref={avatarRef} className="avatar-file-input" type="file" accept="image/*" onChange={e => uploadAvatar(e.target.files?.[0])}/><p className="avatar-hint">從手機相簿選擇，會自動裁成方形</p><p className="eyebrow">EDIT PROFILE</p><h2>編輯個人檔案</h2><label>顯示名稱<input maxLength={20} value={profileDraft} onChange={e => setProfileDraft(e.target.value)} /></label><button className="copy-invite" disabled={!profileDraft.trim() || avatarBusy} onClick={saveProfile}>儲存變更</button></div></div>}
-    {settingsOpen && <div className="modal-backdrop" onMouseDown={() => setSettingsOpen(false)}><div className="settings-modal" onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setSettingsOpen(false)}>×</button><p className="eyebrow">SETTINGS</p><h2>設定</h2><div className="setting-row"><span>帳號名稱</span><strong>{profileName}</strong></div><div className="setting-row"><span>相簿隱私</span><strong>只有受邀成員</strong></div><button className="settings-invite" onClick={() => {setSettingsOpen(false);setInviteOpen(true)}}>查看邀請連結</button><button className="settings-signout" onClick={onSignOut}>登出帳號</button></div></div>}
+    {settingsOpen && <div className="modal-backdrop" onMouseDown={() => setSettingsOpen(false)}><div className="settings-modal" onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setSettingsOpen(false)}>×</button><p className="eyebrow">SETTINGS</p><h2>設定</h2><div className="setting-row"><span>帳號名稱</span><strong>{profileName}</strong></div><div className="setting-row"><span>相簿隱私</span><strong>只有受邀成員</strong></div><button className="settings-invite" onClick={() => {setSettingsOpen(false);setInviteOpen(true)}}>查看邀請連結</button><button className="settings-signout" type="button" disabled={signingOut} onClick={handleSignOut}>{signingOut ? '正在登出…' : '登出帳號'}</button></div></div>}
     {compose && <div className="modal-backdrop" onMouseDown={() => setCompose(false)}><div className="compose-modal" onMouseDown={e => e.stopPropagation()}><button className="close" onClick={() => setCompose(false)}>×</button><p className="eyebrow">NEW MEMORY</p><h2>今天想留下什麼？</h2><button className="upload-zone" onClick={() => fileRef.current?.click()}><span>＋</span><strong>加入照片或影片</strong><small>支援多張照片與影片</small></button><input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={() => notify('已選取媒體')} /><label>這段回憶的名字<input placeholder="例如：下班後的小約會" /></label><label>去了哪裡？<div className="location-input"><span><i className="mini-pin"/></span><input value={location} onChange={e => setLocation(e.target.value)} placeholder="搜尋或輸入地點，例如：淡水漁人碼頭" /></div><small className="field-hint">收藏後會自動加入「我們的足跡」</small></label><label>想說的話<textarea placeholder="記下此刻的心情…" /></label><div className="modal-actions"><button onClick={() => setCompose(false)}>取消</button><button className="save" onClick={() => { if (location.trim()) setSavedPlaces(v => [location.trim(), ...v]); setLocation(''); setCompose(false); notify(location.trim() ? '回憶已收藏，地點已連結到足跡地圖' : '回憶已好好收藏'); }}>收藏回憶</button></div></div></div>}
     {toast && <div className="toast">完成・{toast}</div>}
   </main>;
